@@ -1,0 +1,34 @@
+.home-container {
+    display: flex;
+    height: 100vh;
+  }
+  
+  .sidebar {
+    width: 25%;
+    padding: 16px;
+    background-color: #f3f4f6; /* Light gray */
+  }
+  
+  .metadata {
+    width: 25%;
+    padding: 16px;
+    background-color: #e5e7eb; /* Slightly darker gray */
+  }
+  
+  .viewer {
+    width: 50%;
+    padding: 16px;
+    background-color: #d1d5db; /* Even darker gray */
+  }
+  
+  .dark .sidebar {
+    background-color: #1f2937; /* Dark gray */
+  }
+  
+  .dark .metadata {
+    background-color: #374151; /* Darker gray */
+  }
+  
+  .dark .viewer {
+    background-color: #4b5563; /* Even darker gray */
+  }
