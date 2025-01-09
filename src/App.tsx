@@ -21,9 +21,7 @@ function App() {
           <SwitchDarkMode />
           <HamburgerMenu />
         </div>
-        <div className="flex flex-col justify-center items-center h-full pt-32 space-y-4">
-          <Home />
-        </div>
+        <Home />
       </div>
     </div>
   );

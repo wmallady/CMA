@@ -2,7 +2,7 @@ import React from 'react';
 import FolderWindow from '../components/FolderWindow';
 
 function Home() {
-  function getFiles() {
+  /* function getFiles() {
     // get all files in the current directory and return them as an array
     return null;
   }
@@ -38,9 +38,7 @@ function Home() {
   function populateFileContentView(){
     // populate the file content view with the content of the current file
     return null;
-  }
-
-
+  } */
 
   return (
     <div className="home-container flex h-screen p-4 gap-2.5">

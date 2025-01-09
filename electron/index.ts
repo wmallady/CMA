@@ -1,5 +1,6 @@
 // Native
-import { join } from 'path';
+import * as path from 'path';
+import fs from 'fs';
 
 // Packages
 import { BrowserWindow, app, ipcMain, IpcMainEvent, nativeTheme } from 'electron';
@@ -19,12 +20,12 @@ function createWindow() {
     resizable: true,
     fullscreenable: true,
     webPreferences: {
-      preload: join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js')
     }
   });
 
   const port = process.env.PORT || 3000;
-  const url = isDev ? `http://localhost:${port}` : join(__dirname, '../dist-vite/index.html');
+  const url = isDev ? `http://localhost:${port}` : path.join(__dirname, '../dist-vite/index.html');
 
   // and load the index.html of the app.
   if (isDev) {
@@ -80,4 +81,36 @@ app.on('window-all-closed', () => {
 ipcMain.on('message', (event: IpcMainEvent, message: any) => {
   console.log(message);
   setTimeout(() => event.sender.send('message', 'common.hiElectron'), 500);
+});
+
+ipcMain.handle('load-initial-directory', async () => {
+  const homeDir = process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME;
+
+  if (!homeDir) {
+    throw new Error('Could not determine home directory');
+  }
+
+  const items = await fs.promises.readdir(homeDir, { withFileTypes: true });
+
+  return items.map((item) => ({
+    name: item.name,
+    path: path.join(homeDir, item.name),
+    isDirectory: item.isDirectory()
+  }));
+});
+
+ipcMain.handle('get-files', async () => {
+  const homeDir = process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME;
+
+  if (!homeDir) {
+    throw new Error('Could not determine home directory');
+  }
+
+  const items = await fs.promises.readdir(homeDir, { withFileTypes: true });
+
+  return items.map((item) => ({
+    name: item.name,
+    path: path.join(homeDir, item.name),
+    isDirectory: item.isDirectory()
+  }));
 });
