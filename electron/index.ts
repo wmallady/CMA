@@ -6,8 +6,8 @@ import fs from 'fs';
 import { BrowserWindow, app, ipcMain, IpcMainEvent, nativeTheme } from 'electron';
 import isDev from 'electron-is-dev';
 
-const height = 600;
-const width = 800;
+const height = 1080;
+const width = 1920;
 
 function createWindow() {
   // Create the browser window.
@@ -74,43 +74,83 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+// FUNCTIONS
 
-// listen the channel `message` and resend the received message to the renderer process
-ipcMain.on('message', (event: IpcMainEvent, message: any) => {
-  console.log(message);
-  setTimeout(() => event.sender.send('message', 'common.hiElectron'), 500);
-});
+function isSystemFile(dirPath: string, item: fs.Dirent): boolean {
+  const itemPath = path.join(dirPath, item.name);
+  if (process.platform === 'win32') {
+    try {
+      const stats = fs.statSync(itemPath);
+      return !!(stats.mode && fs.constants.S_IFDIR);
+    } catch (error) {
+      return false;
+    }
+  }
+  return false;
+}
+
+async function loadDirectoryContents(
+  dirPath: string
+): Promise<{ name: string; path: string; isDirectory: boolean; children: any[] }[]> {
+  const items = await fs.promises.readdir(dirPath, { withFileTypes: true });
+
+  const filteredItems = items.filter((item) => {
+    // Exclude hidden files and system files
+    return !item.name.startsWith('.') && !isSystemFile(dirPath, item);
+  });
+
+  return Promise.all(
+    filteredItems.map(async (item) => {
+      const itemPath = path.join(dirPath, item.name);
+      return {
+        name: item.name,
+        path: itemPath,
+        isDirectory: item.isDirectory(),
+        children: item.isDirectory() ? await loadDirectoryContents(itemPath) : []
+      };
+    })
+  );
+}
 
 ipcMain.handle('load-initial-directory', async () => {
   const homeDir = process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME;
-
   if (!homeDir) {
     throw new Error('Could not determine home directory');
   }
 
   const items = await fs.promises.readdir(homeDir, { withFileTypes: true });
+  const filteredItems = items.filter((item) => !item.name.startsWith('.') && !isSystemFile(homeDir, item));
 
-  return items.map((item) => ({
-    name: item.name,
-    path: path.join(homeDir, item.name),
-    isDirectory: item.isDirectory()
-  }));
+  return [
+    { name: '..', path: path.join(homeDir, '..'), isDirectory: true },
+    ...filteredItems.map((item) => ({
+      name: item.name,
+      path: path.join(homeDir, item.name),
+      isDirectory: item.isDirectory()
+    }))
+  ];
 });
 
-ipcMain.handle('get-files', async () => {
-  const homeDir = process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME;
+ipcMain.handle('load-directory-contents', async (event, dirPath) => {
+  const items = await fs.promises.readdir(dirPath, { withFileTypes: true });
+  const filteredItems = items.filter((item) => !item.name.startsWith('.') && !isSystemFile(dirPath, item));
 
-  if (!homeDir) {
-    throw new Error('Could not determine home directory');
-  }
+  const fileItems = await Promise.all(
+    filteredItems.map(async (item) => {
+      const itemPath = path.join(dirPath, item.name);
+      return {
+        name: item.name,
+        path: itemPath,
+        isDirectory: item.isDirectory(),
+        children: item.isDirectory() ? await loadDirectoryContents(itemPath) : []
+      };
+    })
+  );
 
-  const items = await fs.promises.readdir(homeDir, { withFileTypes: true });
+  return [{ name: '..', path: path.join(dirPath, '..'), isDirectory: true }, ...fileItems];
+});
 
-  return items.map((item) => ({
-    name: item.name,
-    path: path.join(homeDir, item.name),
-    isDirectory: item.isDirectory()
-  }));
+ipcMain.on('message', (event: IpcMainEvent, message: any) => {
+  console.log(message);
+  setTimeout(() => event.sender.send('message', 'common.hiElectron'), 500);
 });

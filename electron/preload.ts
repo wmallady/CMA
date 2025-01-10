@@ -190,8 +190,8 @@ const api = {
 
 contextBridge.exposeInMainWorld('Main', api);
 
-contextBridge.exposeInMainWorld('electron', {
-  // POINTS TO main.ts
+contextBridge.exposeInMainWorld('Electron', {
+  // exposes methods as window.Electron.someMethod()
   loadInitialDirectory: () => ipcRenderer.invoke('load-initial-directory'),
-  getFiles: () => ipcRenderer.invoke('get-files')
+  loadDirectoryContents: (dirPath: string) => ipcRenderer.invoke('load-directory-contents', dirPath)
 });
