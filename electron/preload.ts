@@ -44,6 +44,7 @@ const safeDOM = {
  * https://projects.lukehaas.me/css-loaders
  * https://matejkustec.github.io/SpinThatShit
  */
+
 function useLoading() {
   const styleContent = `
   .sk-chase {
@@ -191,7 +192,18 @@ const api = {
 contextBridge.exposeInMainWorld('Main', api);
 
 contextBridge.exposeInMainWorld('Electron', {
-  // exposes methods as window.Electron.someMethod()
-  loadInitialDirectory: () => ipcRenderer.invoke('load-initial-directory'),
-  loadDirectoryContents: (dirPath: string) => ipcRenderer.invoke('load-directory-contents', dirPath)
+  // exposes functions as window.Electron.someFunc
+
+  loadDirectoryContents: (dirPath: string) => {
+    console.log('Loading directory contents:', dirPath);
+    return ipcRenderer.invoke('load-directory-contents', dirPath);
+  },
+  loadInitialDirectory: () => {
+    console.log('Loading initial directory');
+    return ipcRenderer.invoke('load-initial-directory');
+  },
+  loadNetworkDrives: () => {
+    console.log('Loading network drives');
+    return ipcRenderer.invoke('get-network-drives');
+  }
 });

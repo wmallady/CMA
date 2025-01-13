@@ -1,9 +1,11 @@
 // Native
 import * as path from 'path';
 import fs from 'fs';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
 // Packages
-import { BrowserWindow, app, ipcMain, IpcMainEvent, nativeTheme } from 'electron';
+import { BrowserWindow, app, ipcMain, nativeTheme } from 'electron';
 import isDev from 'electron-is-dev';
 
 const height = 1080;
@@ -89,7 +91,59 @@ function isSystemFile(dirPath: string, item: fs.Dirent): boolean {
   return false;
 }
 
-async function loadDirectoryContents(
+const execAsync = promisify(exec);
+
+interface NetworkDrive {
+  name: string;
+  path: string;
+  isNetwork: boolean;
+}
+
+async function getNetworkDrives(): Promise<NetworkDrive[]> {
+  if (process.platform === 'win32') {
+    try {
+      const { stdout } = await execAsync('wmic logicaldisk where drivetype=4 get caption,providername');
+      return stdout
+        .trim()
+        .split('\n')
+        .slice(1) // Remove header
+        .map((line) => {
+          const [caption] = line.trim().split(/\s+/);
+          return {
+            name: caption,
+            path: `${caption}\\`,
+            isNetwork: true
+          };
+        });
+    } catch (error) {
+      console.error('Error getting network drives:', error);
+      return [];
+    }
+  } else {
+    // For Mac/Linux, check /Volumes or /mnt
+    const mountPath = process.platform === 'darwin' ? '/Volumes' : '/mnt';
+    try {
+      const { stdout } = await execAsync(`ls -l ${mountPath}`);
+      return stdout
+        .trim()
+        .split('\n')
+        .filter((line) => line.includes('->')) // Filter symbolic links
+        .map((line) => {
+          const name = line.split(' ').pop() as string;
+          return {
+            name,
+            path: `${mountPath}/${name}`,
+            isNetwork: true
+          };
+        });
+    } catch (error) {
+      console.error('Error getting network drives:', error);
+      return [];
+    }
+  }
+}
+
+/* async function loadDirectoryContents(
   dirPath: string
 ): Promise<{ name: string; path: string; isDirectory: boolean; children: any[] }[]> {
   const items = await fs.promises.readdir(dirPath, { withFileTypes: true });
@@ -110,9 +164,9 @@ async function loadDirectoryContents(
       };
     })
   );
-}
+} */
 
-ipcMain.handle('load-initial-directory', async () => {
+/* ipcMain.handle('load-initial-directory', async () => {
   const homeDir = process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME;
   if (!homeDir) {
     throw new Error('Could not determine home directory');
@@ -130,27 +184,82 @@ ipcMain.handle('load-initial-directory', async () => {
     }))
   ];
 });
+*/
 
-ipcMain.handle('load-directory-contents', async (event, dirPath) => {
-  const items = await fs.promises.readdir(dirPath, { withFileTypes: true });
-  const filteredItems = items.filter((item) => !item.name.startsWith('.') && !isSystemFile(dirPath, item));
+ipcMain.handle('load-directory-contents', async (_event, dirPath: string) => {
+  try {
+    const files = await fs.promises.readdir(dirPath, { withFileTypes: true });
 
-  const fileItems = await Promise.all(
-    filteredItems.map(async (item) => {
-      const itemPath = path.join(dirPath, item.name);
-      return {
-        name: item.name,
-        path: itemPath,
-        isDirectory: item.isDirectory(),
-        children: item.isDirectory() ? await loadDirectoryContents(itemPath) : []
-      };
-    })
-  );
+    const fileItems = await Promise.all(
+      files
+        .filter((file) => !file.name.startsWith('.') && !isSystemFile(dirPath, file))
+        .map(async (dirent) => {
+          const filePath = path.join(dirPath, dirent.name);
+          const stats = await fs.promises.stat(filePath);
 
-  return [{ name: '..', path: path.join(dirPath, '..'), isDirectory: true }, ...fileItems];
+          return {
+            name: dirent.name,
+            path: filePath,
+            isDirectory: stats.isDirectory(),
+            children: [] // Children will be loaded on expansion
+          };
+        })
+    );
+
+    return [
+      {
+        name: '..',
+        path: path.join(dirPath, '..'),
+        isDirectory: true,
+        children: []
+      },
+      ...fileItems
+    ];
+  } catch (error) {
+    console.error('Error loading directory contents:', error);
+    throw error;
+  }
 });
 
-ipcMain.on('message', (event: IpcMainEvent, message: any) => {
-  console.log(message);
-  setTimeout(() => event.sender.send('message', 'common.hiElectron'), 500);
+ipcMain.handle('get-network-drives', async () => {
+  return getNetworkDrives();
+});
+
+// Update loadInitialDirectory to include network drives
+ipcMain.handle('load-initial-directory', async () => {
+  try {
+    const homeDir = process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME;
+
+    if (!homeDir) {
+      throw new Error('Could not determine home directory');
+    }
+
+    console.log('Loading from directory:', homeDir);
+
+    const networkDrives = await getNetworkDrives();
+    const localFiles = await fs.promises.readdir(homeDir, { withFileTypes: true });
+
+    const filteredLocalFiles = await Promise.all(
+      localFiles
+        .filter((localFile) => !localFile.name.startsWith('.') && !isSystemFile(homeDir, localFile))
+        .map(async (dirent) => {
+          const filePath = path.join(homeDir, dirent.name);
+          const stats = await fs.promises.stat(filePath);
+
+          return {
+            name: dirent.name,
+            path: filePath,
+            isDirectory: stats.isDirectory(),
+            children: []
+          };
+        })
+    );
+
+    console.log('Filtered local files:', filteredLocalFiles);
+
+    return [...networkDrives, ...filteredLocalFiles];
+  } catch (error) {
+    console.error('Error in load-initial-directory:', error);
+    throw error;
+  }
 });
