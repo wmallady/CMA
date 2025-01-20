@@ -1,4 +1,5 @@
 import { ipcRenderer, contextBridge } from 'electron';
+import { FileMetadata } from '../src/interfaces/Interfaces';
 
 /**
  * Using the ipcRenderer directly in the browser through the contextBridge ist not really secure.
@@ -205,5 +206,9 @@ contextBridge.exposeInMainWorld('Electron', {
   loadNetworkDrives: () => {
     console.log('Loading network drives');
     return ipcRenderer.invoke('get-network-drives');
+  },
+
+  getFileMetadata: (filePath: string): Promise<FileMetadata> => {
+    return ipcRenderer.invoke('get-file-metadata', filePath);
   }
 });

@@ -1,41 +1,15 @@
 import React, { useEffect, useState } from 'react';
-
-interface NetworkDrive {
-  name: string;
-  path: string;
-  isNetwork: boolean;
-}
-interface FileItem {
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  children?: FileItem[];
-}
-
-export interface IElectronAPI {
-  loadDirectoryContents: (dirPath: string) => Promise<FileItem[]>;
-  loadInitialDirectory: () => Promise<FileItem[]>;
-  loadNetworkDrives: () => Promise<NetworkDrive[]>;
-  darkMode: {
-    toggle: () => void;
-    system: () => void;
-  };
-}
-
-declare global {
-  interface Window {
-    Electron: IElectronAPI;
-  }
-}
+import { FileItem, FileMetadata, FolderWindowProps } from '../interfaces/Interfaces';
 
 type DriveType = 'network' | 'local' | 'filehold';
 
-function FolderWindow() {
+function FolderWindow({ onFileSelect }: FolderWindowProps) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDrive, setSelectedDrive] = useState<DriveType>('local');
+  const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
 
   const updateFileChildren = (childFiles: FileItem[], parentPath: string, children: FileItem[]): FileItem[] => {
     return childFiles.map((file) => {
@@ -116,17 +90,45 @@ function FolderWindow() {
     });
   };
 
+  const getFileMetadata = async (filePath: string): Promise<FileMetadata> => {
+    try {
+      return await window.Electron.getFileMetadata(filePath);
+    } catch (err) {
+      console.error('Error getting file metadata:', err);
+      throw err;
+    }
+  };
+
+  const handleFileSelect = async (file: FileItem) => {
+    try {
+      const metadata = await getFileMetadata(file.path);
+      setSelectedFile(metadata);
+      onFileSelect(metadata);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
   const renderFileItems = (items: FileItem[]) => {
     return items.map((file) => (
       <li key={file.path} className="flex flex-col ml-4">
         <div
-          className="flex items-center p-2 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-md cursor-pointer"
-          onClick={() => file.isDirectory && handleFolderClick(file.path)}
           role="button"
           tabIndex={0}
+          className={`flex items-center p-2 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-md cursor-pointer 
+            ${selectedFile?.path === file.path ? 'bg-blue-200 dark:bg-blue-700' : ''}`}
+          onClick={() => {
+            if (file.isDirectory) {
+              handleFolderClick(file.path);
+            }
+            handleFileSelect(file);
+          }}
           onKeyPress={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
-              if (file.isDirectory) handleFolderClick(file.path);
+              if (file.isDirectory) {
+                handleFolderClick(file.path);
+              }
+              handleFileSelect(file);
             }
           }}
         >

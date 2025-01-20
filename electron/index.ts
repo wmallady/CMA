@@ -8,6 +8,8 @@ import { promisify } from 'util';
 import { BrowserWindow, app, ipcMain, nativeTheme } from 'electron';
 import isDev from 'electron-is-dev';
 
+import { NetworkDrive } from '../src/interfaces/Interfaces';
+
 const height = 1080;
 const width = 1920;
 
@@ -92,12 +94,6 @@ function isSystemFile(dirPath: string, item: fs.Dirent): boolean {
 }
 
 const execAsync = promisify(exec);
-
-interface NetworkDrive {
-  name: string;
-  path: string;
-  isNetwork: boolean;
-}
 
 async function getNetworkDrives(): Promise<NetworkDrive[]> {
   if (process.platform === 'win32') {
@@ -260,6 +256,24 @@ ipcMain.handle('load-initial-directory', async () => {
     return [...networkDrives, ...filteredLocalFiles];
   } catch (error) {
     console.error('Error in load-initial-directory:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('get-file-metadata', async (_event, filePath: string) => {
+  try {
+    const stats = await fs.promises.stat(filePath);
+    return {
+      name: path.basename(filePath),
+      path: filePath,
+      size: stats.size,
+      type: path.extname(filePath) || 'directory',
+      created: stats.birthtime,
+      modified: stats.mtime,
+      isDirectory: stats.isDirectory()
+    };
+  } catch (error) {
+    console.error('Error getting file metadata:', error);
     throw error;
   }
 });
