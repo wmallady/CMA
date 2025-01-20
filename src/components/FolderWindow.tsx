@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+// Note: This component is responsible for displaying the folder structure and files within the selected directory.
 import React, { useEffect, useState } from 'react';
 import { FileItem, FileMetadata, FolderWindowProps } from '../interfaces/Interfaces';
 
@@ -152,7 +152,7 @@ function FolderWindow({ onFileSelect }: FolderWindowProps) {
           className="w-full p-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg 
                      shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          <option value="network">Network Drive (R:)</option>
+          <option value="network">Network Drive (O:)</option>
           <option value="local">Local Directory (C:)</option>
           <option value="filehold">FileHold</option>
         </select>

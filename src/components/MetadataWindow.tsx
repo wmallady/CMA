@@ -1,3 +1,4 @@
+// Desc: Component to display metadata of a file or folder
 import React from 'react';
 import { MetadataWindowProps } from '../interfaces/Interfaces';
 

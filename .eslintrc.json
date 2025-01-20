@@ -27,6 +27,7 @@
     "rules": {
         // Prettier
         "prettier/prettier": "error",
+        "endOfLine": "auto",
         // Typescript
         "no-use-before-define": "off",
         "import/prefer-default-export": "warn",
