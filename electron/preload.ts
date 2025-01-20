@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { ipcRenderer, contextBridge } from 'electron';
 import { FileMetadata } from '../src/interfaces/Interfaces';
 
@@ -182,17 +183,6 @@ const api = {
   removeLoading: () => {
     removeLoading();
   },
-  /**
-   * Provide an easier way to listen to events
-   */
-  on: (channel: string, callback: (data: any) => void) => {
-    ipcRenderer.on(channel, (_, data) => callback(data));
-  }
-};
-
-contextBridge.exposeInMainWorld('Main', api);
-
-contextBridge.exposeInMainWorld('Electron', {
   // exposes functions as window.Electron.someFunc
 
   loadDirectoryContents: (dirPath: string) => {
@@ -210,5 +200,17 @@ contextBridge.exposeInMainWorld('Electron', {
 
   getFileMetadata: (filePath: string): Promise<FileMetadata> => {
     return ipcRenderer.invoke('get-file-metadata', filePath);
+  },
+  /**
+   * Provide an easier way to listen to events
+   */
+  on: (channel: string, callback: (data: any) => void) => {
+    ipcRenderer.on(channel, (_, data) => callback(data));
   }
-});
+// eslint-disable-next-line prettier/prettier
+// eslint-disable-next-line prettier/prettier
+};
+
+contextBridge.exposeInMainWorld('Main', api);
+
+contextBridge.exposeInMainWorld('Electron', {});

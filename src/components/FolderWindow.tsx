@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import React, { useEffect, useState } from 'react';
 import { FileItem, FileMetadata, FolderWindowProps } from '../interfaces/Interfaces';
 
@@ -26,14 +27,14 @@ function FolderWindow({ onFileSelect }: FolderWindowProps) {
   const handleDriveChange = async (driveType: DriveType) => {
     setIsLoading(true);
     setSelectedDrive(driveType);
-    const networkFiles = await window.Electron.loadNetworkDrives();
-    const localFiles = await window.Electron.loadInitialDirectory();
+    const networkFiles = await window.Main.loadNetworkDrives();
+    const localFiles = await window.Main.loadInitialDirectory();
 
     try {
       switch (driveType) {
         case 'network':
           setFiles(
-            networkFiles.map((drive) => ({
+            networkFiles.map((drive: FileItem) => ({
               name: drive.name,
               path: drive.path,
               isDirectory: true,
@@ -48,12 +49,12 @@ function FolderWindow({ onFileSelect }: FolderWindowProps) {
           break;
 
         default:
-          setFiles(
-            localFiles.map((file) => ({
+            setFiles(
+            localFiles.map((file: FileItem) => ({
               ...file,
               isDirectory: file.isDirectory
             }))
-          );
+            );
           break;
       }
     } catch (err) {
@@ -69,7 +70,7 @@ function FolderWindow({ onFileSelect }: FolderWindowProps) {
 
   const loadFolderContents = async (folderPath: string) => {
     try {
-      const contents = await window.Electron.loadDirectoryContents(folderPath);
+      const contents = await window.Main.loadDirectoryContents(folderPath);
       setFiles((prevFiles) => updateFileChildren(prevFiles, folderPath, contents));
     } catch (err) {
       console.error('Error loading folder contents:', err);
@@ -92,7 +93,7 @@ function FolderWindow({ onFileSelect }: FolderWindowProps) {
 
   const getFileMetadata = async (filePath: string): Promise<FileMetadata> => {
     try {
-      return await window.Electron.getFileMetadata(filePath);
+      return await window.Main.getFileMetadata(filePath);
     } catch (err) {
       console.error('Error getting file metadata:', err);
       throw err;
@@ -132,7 +133,7 @@ function FolderWindow({ onFileSelect }: FolderWindowProps) {
             }
           }}
         >
-          <span className="mr-2">{file.isDirectory && expandedPaths.has(file.path) ? '📂' : '📄'}</span>
+          <span className="mr-2">{file.isDirectory ? '📂' : '📄'}</span>
           <span>{file.name}</span>
         </div>
         {file.isDirectory && expandedPaths.has(file.path) && file.children && (
