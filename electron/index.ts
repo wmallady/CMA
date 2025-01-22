@@ -225,7 +225,7 @@ ipcMain.handle('get-network-drives', async () => {
 // Update loadInitialDirectory to include network drives
 ipcMain.handle('load-initial-directory', async () => {
   try {
-    const homeDir = process.platform === 'win32' ? process.env.USERPROFLE : process.env.USERPROFILE;
+    const homeDir = process.platform === 'win32' ? `C:\\Users\\${process.env.USERNAME}` : `C:\\Users\\${process.env.USERNAME}\\My Documents`;
 
     if (!homeDir) {
       throw new Error('Could not determine home directory');
@@ -238,8 +238,9 @@ ipcMain.handle('load-initial-directory', async () => {
 
     const filteredLocalFiles = await Promise.all(
       localFiles
-        /* .filter((localFile) => !localFile.name.startsWith('.') && !isSystemFile(homeDir, localFile) && !localFile.name.endsWith('.tmp') && !localFile.name.endsWith('.lnk') && !localFile.name.endsWith('.log')) */
-        .filter((localFile) => (localFile.name.endsWith('.pdf') || localFile.name.endsWith('.doc') || localFile.name.endsWith('.docx') || localFile.name.endsWith('.txt')) && !isSystemFile(homeDir, localFile))
+        //.filter((localFile) => !localFile.name.startsWith('.') && !isSystemFile(homeDir, localFile) && !localFile.name.endsWith('.tmp') && !localFile.name.endsWith('.lnk') && !localFile.name.endsWith('.log'))
+        /*.filter((localFile) => (localFile.name.endsWith('.pdf') || localFile.name.endsWith('.doc') || localFile.name.endsWith('.docx') || localFile.name.endsWith('.txt')) && !isSystemFile(homeDir, localFile))*/
+        .filter((localFile) => !localFile.name.startsWith('.'))
         .map(async (dirent) => {
           const filePath = path.join(homeDir, dirent.name);
           const stats = await fs.promises.stat(filePath);
