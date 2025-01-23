@@ -27,10 +27,12 @@ export interface FileMetadata {
   internalContactEmail?: string;
   externalContact?: string;
   externalContactEmail?: string;
+  renewalDate?: string | Date;
 }
 
 export interface ActionWindowProps {
   file: FileMetadata;
+  onUpdateFile: (updatedFile: FileMetadata) => void;
 }
 
 export interface FolderWindowProps {

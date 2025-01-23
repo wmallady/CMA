@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 // Native
 import * as path from 'path';
 import fs from 'fs';
@@ -81,17 +80,26 @@ app.on('window-all-closed', () => {
 
 // FUNCTIONS
 
-function isSystemFile(dirPath: string, item: fs.Dirent): boolean {
+function isRelevantFile(dirPath: string, item: fs.Dirent): boolean {
+  const relevantExtensions = ['.doc', '.docx', '.pdf', '.txt'];
   const itemPath = path.join(dirPath, item.name);
-  if (process.platform === 'win32') {
-    try {
-      const stats = fs.statSync(itemPath);
-      return !!(stats.mode && fs.constants.S_IFDIR);
-    } catch (error) {
+  const extension = path.extname(item.name).toLowerCase();
+
+  try {
+    const stats = fs.statSync(itemPath);
+    if (stats.isFile() && relevantExtensions.includes(extension)) {
+      return true;
+    } else if (stats.isDirectory()) {
+      return true;
+    } else {
       return false;
     }
+  } catch (error: any) {
+    console.error(`Error checking file relevance: ${error.message}`);
+    return false;
   }
-  return false;
+
+
 }
 
 const execAsync = promisify(exec);
@@ -189,7 +197,7 @@ ipcMain.handle('load-directory-contents', async (_event, dirPath: string) => {
 
     const fileItems = await Promise.all(
       files
-        .filter((file) => !file.name.startsWith('.') && !isSystemFile(dirPath, file))
+        .filter((file) => !file.name.startsWith('.') && isRelevantFile(dirPath, file))
         .map(async (dirent) => {
           const filePath = path.join(dirPath, dirent.name);
           const stats = await fs.promises.stat(filePath);
@@ -225,7 +233,7 @@ ipcMain.handle('get-network-drives', async () => {
 // Update loadInitialDirectory to include network drives
 ipcMain.handle('load-initial-directory', async () => {
   try {
-    const homeDir = process.platform === 'win32' ? `C:\\Users\\${process.env.USERNAME}` : `C:\\Users\\${process.env.USERNAME}\\My Documents`;
+    const homeDir = process.platform === 'win32' ? `C:\\Users\\${process.env.USERNAME}` : process.env.HOME;
 
     if (!homeDir) {
       throw new Error('Could not determine home directory');
@@ -238,9 +246,7 @@ ipcMain.handle('load-initial-directory', async () => {
 
     const filteredLocalFiles = await Promise.all(
       localFiles
-        //.filter((localFile) => !localFile.name.startsWith('.') && !isSystemFile(homeDir, localFile) && !localFile.name.endsWith('.tmp') && !localFile.name.endsWith('.lnk') && !localFile.name.endsWith('.log'))
-        /*.filter((localFile) => (localFile.name.endsWith('.pdf') || localFile.name.endsWith('.doc') || localFile.name.endsWith('.docx') || localFile.name.endsWith('.txt')) && !isSystemFile(homeDir, localFile))*/
-        .filter((localFile) => !localFile.name.startsWith('.'))
+        .filter((localFile) => !localFile.name.startsWith('.') && isRelevantFile(homeDir, localFile))
         .map(async (dirent) => {
           const filePath = path.join(homeDir, dirent.name);
           const stats = await fs.promises.stat(filePath);
@@ -249,7 +255,7 @@ ipcMain.handle('load-initial-directory', async () => {
             name: dirent.name,
             path: filePath,
             isDirectory: stats.isDirectory(),
-            children: []
+            children: stats.isDirectory() ? [] : undefined
           };
         })
     );

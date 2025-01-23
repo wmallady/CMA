@@ -133,7 +133,7 @@ function FolderWindow({ onFileSelect }: FolderWindowProps) {
             }
           }}
         >
-          <span className="mr-2">{file.isDirectory ? '📂' : '📄'}</span>
+          <span className="mr-2">{file.isDirectory && expandedPaths.has(file.path) ? '📂' : '📄'}</span>
           <span>{file.name}</span>
         </div>
         {file.isDirectory && expandedPaths.has(file.path) && file.children && (

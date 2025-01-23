@@ -44,6 +44,9 @@ export default function MetadataWindow({ metadata }: MetadataWindowProps) {
         <p className="flex justify-between">
           <span>Modified:</span> <span>{formatDate(metadata.modified)}</span>
         </p>
+        <p className="flex justify-between">
+          <span>Renewal Date:</span> <span>{formatDate(metadata.renewalDate ? new Date(metadata.renewalDate) : undefined)}</span>
+        </p>
       </div>
 
       <div className="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
@@ -57,15 +60,16 @@ export default function MetadataWindow({ metadata }: MetadataWindowProps) {
       </div>
 
       <div className="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
-        <h3 className="font-medium mb-2">Permissions</h3>
+        <h3 className="font-medium mb-2">Contact Info</h3>
         <p className="flex justify-between">
-          <span>Readable:</span> <span>{metadata.readable ? 'Yes' : 'No'}</span>
+          <span>Internal (Grace Health) Contact</span> 
+          &#9;<span>Name: {metadata.internalContact}</span>
+          &#9;<span>Email: {metadata.internalContactEmail}</span>
         </p>
         <p className="flex justify-between">
-          <span>Writable:</span> <span>{metadata.writable ? 'Yes' : 'No'}</span>
-        </p>
-        <p className="flex justify-between">
-          <span>Executable:</span> <span>{metadata.executable ? 'Yes' : 'No'}</span>
+          <span>External Contact</span> 
+          &#9;<span>Name: {metadata.externalContact}</span>
+          &#9;<span>Email: {metadata.externalContactEmail}</span>
         </p>
       </div>
     </div>
