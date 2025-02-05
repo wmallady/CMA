@@ -201,6 +201,10 @@ const api = {
   getFileMetadata: (filePath: string): Promise<FileMetadata> => {
     return ipcRenderer.invoke('get-file-metadata', filePath);
   },
+
+  saveFile: (filePath: string, data: string): Promise<void> => {
+    return ipcRenderer.invoke('save-file', filePath, data);
+  },
   /**
    * Provide an easier way to listen to events
    */

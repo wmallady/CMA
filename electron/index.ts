@@ -9,6 +9,7 @@ import { BrowserWindow, app, ipcMain, nativeTheme } from 'electron';
 import isDev from 'electron-is-dev';
 
 import { NetworkDrive } from '../src/interfaces/Interfaces';
+import * as xattr from 'fs-extended-attributes';
 
 const height = 1080;
 const width = 1920;
@@ -233,7 +234,7 @@ ipcMain.handle('get-network-drives', async () => {
 // Update loadInitialDirectory to include network drives
 ipcMain.handle('load-initial-directory', async () => {
   try {
-    const homeDir = process.platform === 'win32' ? `C:\\Users\\${process.env.USERNAME}` : process.env.HOME;
+    const homeDir = process.platform === 'win32' ? `C:\\Users\\${process.env.USERNAME}\\Contracts` : process.env.HOME;
 
     if (!homeDir) {
       throw new Error('Could not determine home directory');
@@ -283,6 +284,15 @@ ipcMain.handle('get-file-metadata', async (_event, filePath: string) => {
     };
   } catch (error) {
     console.error('Error getting file metadata:', error);
+    throw error;
+  }
+});
+ipcMain.handle('write-custom-metadata', async (_event, filePath: string, metadata: string) => {
+  try {
+    const parsedMetadata = JSON.parse(metadata);
+    await xattr.set(filePath, 'user.customMetadata', JSON.stringify(parsedMetadata));
+  } catch (error) {
+    console.error('Error writing custom metadata:', error);
     throw error;
   }
 });
